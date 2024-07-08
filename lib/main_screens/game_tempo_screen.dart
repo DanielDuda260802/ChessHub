@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:chesshub/constants.dart';
 import 'package:chesshub/helper/helper_methods.dart';
 import 'package:chesshub/main_screens/game_start_screen.dart';
 import 'package:chesshub/providers/game_provider.dart';
@@ -18,7 +19,6 @@ class _GameTempoScreenState extends State<GameTempoScreen> {
   @override
   Widget build(BuildContext context) {
     final gameProvider = context.read<GameProvider>();
-
     // print('VS COMPUTER VALUE: ${gameProvider.vsComputer} )
     return Scaffold(
         appBar: AppBar(
@@ -46,7 +46,7 @@ class _GameTempoScreenState extends State<GameTempoScreen> {
                     label: label,
                     gameTime: tempo,
                     onTap: () {
-                      if (label == 'Custom') {
+                      if (label == Constants.custom) {
                         Navigator.push(
                             context,
                             MaterialPageRoute(
