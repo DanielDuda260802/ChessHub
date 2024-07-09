@@ -1,6 +1,9 @@
+import 'package:bishop/bishop.dart';
 import 'package:chesshub/constants.dart';
+import 'package:chesshub/providers/game_provider.dart';
 import 'package:chesshub/widgets/widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class GameStartScreen extends StatefulWidget {
   const GameStartScreen(
@@ -15,12 +18,14 @@ class GameStartScreen extends StatefulWidget {
 
 class _GameStartScreenState extends State<GameStartScreen> {
   PlayerColor playerColorGroup = PlayerColor.white;
+  GameDifficulty gameDifficultyGroup = GameDifficulty.easy;
 
   int whiteTimeInMinutes = 0;
   int blackTimeInMinutes = 0;
 
   @override
   Widget build(BuildContext context) {
+    final gameProvider = context.read<GameProvider>();
     return Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.black,
@@ -139,8 +144,85 @@ class _GameStartScreenState extends State<GameStartScreen> {
                         )
                 ],
               ),
+              gameProvider.vsComputer
+                  ? Column(
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.all(20.0),
+                          child: Text(
+                            'Game difficult',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 25),
+                          ),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            GameDifficultyRadioButton(
+                                title: GameDifficulty.easy.name,
+                                value: GameDifficulty.easy,
+                                groupValue: gameDifficultyGroup,
+                                onChanged: (value) {
+                                  setState(() {
+                                    gameDifficultyGroup = value!;
+                                  });
+                                }),
+                            const SizedBox(
+                              width: 10,
+                            ),
+                            GameDifficultyRadioButton(
+                                title: GameDifficulty.medium.name,
+                                value: GameDifficulty.medium,
+                                groupValue: gameDifficultyGroup,
+                                onChanged: (value) {
+                                  setState(() {
+                                    gameDifficultyGroup = value!;
+                                  });
+                                }),
+                            const SizedBox(
+                              width: 10,
+                            ),
+                            GameDifficultyRadioButton(
+                                title: GameDifficulty.hard.name,
+                                value: GameDifficulty.hard,
+                                groupValue: gameDifficultyGroup,
+                                onChanged: (value) {
+                                  setState(() {
+                                    gameDifficultyGroup = value!;
+                                  });
+                                }),
+                          ],
+                        )
+                      ],
+                    )
+                  : const SizedBox.shrink(),
+              const SizedBox(
+                height: 20,
+              ),
+              ElevatedButton(
+                  onPressed: () {
+                    playGame(gameProvider: gameProvider);
+                  },
+                  child: Text('play'))
             ],
           ),
         ));
+  }
+
+  void playGame({required GameProvider gameProvider}) {
+    if (widget.isCustomTime) {
+      if (whiteTimeInMinutes <= 0 && blackTimeInMinutes <= 0) {
+        showSnackBar(context: context, content: 'Time cannot be 0.');
+        return;
+      }
+    }
+
+    // 1. Pokratanje loading dialoga
+    gameProvider.setIsLoading(value: true);
+
+    // 2. Spremanje vremena i boje figura za oba igrača
+
+    // 3. Navigiranje na game screen
+    Navigator.pushNamed(context, Constants.gameScreen);
   }
 }

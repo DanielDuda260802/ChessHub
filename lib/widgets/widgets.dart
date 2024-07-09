@@ -1,5 +1,6 @@
 import 'package:chesshub/constants.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 class PlayerColorRadioButton extends StatelessWidget {
   const PlayerColorRadioButton({
@@ -26,6 +27,41 @@ class PlayerColorRadioButton extends StatelessWidget {
       tileColor: Colors.grey[300],
       groupValue: groupValue,
       onChanged: onChanged,
+    );
+  }
+}
+
+class GameDifficultyRadioButton extends StatelessWidget {
+  const GameDifficultyRadioButton({
+    super.key,
+    required this.title,
+    required this.value,
+    required this.groupValue,
+    required this.onChanged,
+  });
+
+  final String title;
+  final GameDifficulty value;
+  final GameDifficulty? groupValue;
+  final Function(GameDifficulty?)? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final capitalizedTitle = title[0].toUpperCase() + title.substring(1);
+    return Expanded(
+      child: RadioListTile<GameDifficulty>(
+        title: Text(
+          capitalizedTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        value: value,
+        dense: true,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        contentPadding: EdgeInsets.zero,
+        tileColor: Colors.grey[300],
+        groupValue: groupValue,
+        onChanged: onChanged,
+      ),
     );
   }
 }
@@ -79,4 +115,8 @@ class BuildCustomTime extends StatelessWidget {
       ],
     );
   }
+}
+
+showSnackBar({required BuildContext context, required String content}) {
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(content)));
 }
