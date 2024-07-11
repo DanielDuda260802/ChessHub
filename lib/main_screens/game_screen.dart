@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:bishop/bishop.dart' as bishop;
+import 'package:chesshub/helper/helper_methods.dart';
 import 'package:chesshub/providers/game_provider.dart';
 import 'package:chesshub/service/assetsManager.dart';
 import 'package:flutter/material.dart';
@@ -40,7 +41,14 @@ class _GameScreenState extends State<GameScreen> {
             Duration(milliseconds: Random().nextInt(4750) + 250));
         gameProvider.game.makeRandomMove();
         gameProvider.setAiThinking(false);
-        gameProvider.setSquaresState();
+        gameProvider.setSquaresState().whenComplete(() {
+          gameProvider.pauseWhiteTimer();
+
+          startTimer(
+            isWhiteTimer: false,
+            newGame: () {},
+          );
+        });
       }
     });
   }
@@ -49,7 +57,23 @@ class _GameScreenState extends State<GameScreen> {
     final gameProvider = context.read<GameProvider>();
     bool result = gameProvider.game.makeSquaresMove(move);
     if (result) {
-      gameProvider.setSquaresState();
+      gameProvider.setSquaresState().whenComplete(() {
+        if (gameProvider.player == Squares.white) {
+          gameProvider.pauseWhiteTimer();
+
+          startTimer(
+            isWhiteTimer: false,
+            newGame: () {},
+          );
+        } else {
+          gameProvider.pauseBlackTimer();
+
+          startTimer(
+            isWhiteTimer: true,
+            newGame: () {},
+          );
+        }
+      });
     }
     if (gameProvider.state.state == PlayState.theirTurn &&
         !gameProvider.aiThinking) {
@@ -58,7 +82,32 @@ class _GameScreenState extends State<GameScreen> {
           Duration(milliseconds: Random().nextInt(4750) + 250));
       gameProvider.game.makeRandomMove();
       gameProvider.setAiThinking(false);
-      gameProvider.setSquaresState();
+      gameProvider.setSquaresState().whenComplete(() {
+        if (gameProvider.player == Squares.white) {
+          gameProvider.pauseBlackTimer();
+
+          startTimer(
+            isWhiteTimer: true,
+            newGame: () {},
+          );
+        } else {
+          gameProvider.pauseBlackTimer();
+
+          startTimer(
+            isWhiteTimer: false,
+            newGame: () {},
+          );
+        }
+      });
+    }
+  }
+
+  void startTimer({required bool isWhiteTimer, required Function newGame}) {
+    final gameProvider = context.read<GameProvider>();
+    if (isWhiteTimer == true) {
+      gameProvider.startWhiteTime(context: context, newGame: newGame);
+    } else {
+      gameProvider.startBlackTime(context: context, newGame: newGame);
     }
   }
 
@@ -97,6 +146,14 @@ class _GameScreenState extends State<GameScreen> {
           return Center(
             child:
                 Consumer<GameProvider>(builder: (context, gameProvider, child) {
+              String whiteTimer = getTimerToDisplay(
+                gameProvider: gameProvider,
+                isUser: true,
+              );
+              String blackTimer = getTimerToDisplay(
+                gameProvider: gameProvider,
+                isUser: false,
+              );
               return Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -109,7 +166,7 @@ class _GameScreenState extends State<GameScreen> {
                     title: const Text('Stockfish'),
                     subtitle: const Text('Rating: 3000'),
                     trailing: Text(
-                      gameProvider.blackTime.toString(),
+                      blackTimer,
                       style: const TextStyle(fontSize: 18),
                     ),
                   ),
@@ -146,7 +203,7 @@ class _GameScreenState extends State<GameScreen> {
                     title: const Text('User_01'),
                     subtitle: const Text('Rating: 1200'),
                     trailing: Text(
-                      gameProvider.whiteTime.toString(),
+                      whiteTimer,
                       style: const TextStyle(fontSize: 18),
                     ),
                   ),
