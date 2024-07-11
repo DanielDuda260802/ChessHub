@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:bishop/bishop.dart' as bishop;
 import 'package:chesshub/constants.dart';
+import 'package:chesshub/main_screens/home_screen.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:square_bishop/square_bishop.dart';
@@ -33,6 +35,9 @@ class GameProvider extends ChangeNotifier {
   Timer? _whiteTimer;
   Timer? _blackTimer;
 
+  int _whitesScore = 0;
+  int _blacksScore = 0;
+
   // get metode
   bishop.Game get game => _game;
   SquaresState get state => _state;
@@ -55,6 +60,9 @@ class GameProvider extends ChangeNotifier {
 
   Timer? get whiteTimer => _whiteTimer;
   Timer? get blackTimer => _blackTimer;
+
+  int get whitesScore => _whitesScore;
+  int get blacksScore => _blacksScore;
 
   // set metode
   void setVsComputer({required bool value}) {
@@ -160,16 +168,23 @@ class GameProvider extends ChangeNotifier {
     _blackTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       _blackTime = blackTime - const Duration(seconds: 1);
       notifyListeners();
+
+      // pad zastavice!
+      if (_blackTime <= Duration.zero) {
+        _blackTimer!.cancel();
+        notifyListeners();
+
+        // GAME OVER
+        if (context.mounted) {
+          gameOverDialog(
+            context: context,
+            timeOut: true,
+            whiteWon: true,
+            newGame: newGame,
+          );
+        }
+      }
     });
-
-    // pad zastavice!
-    if (_blackTime <= Duration.zero) {
-      _blackTimer!.cancel();
-      notifyListeners();
-    }
-
-    // GAME OVER
-    print('Black has lost');
   }
 
   void startWhiteTime({
@@ -179,16 +194,23 @@ class GameProvider extends ChangeNotifier {
     _whiteTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       _whiteTime = whiteTime - const Duration(seconds: 1);
       notifyListeners();
+
+      // pad zastavice!
+      if (_whiteTime <= Duration.zero) {
+        _whiteTimer!.cancel();
+        notifyListeners();
+
+        // GAME OVER
+        if (context.mounted) {
+          gameOverDialog(
+            context: context,
+            timeOut: true,
+            whiteWon: false,
+            newGame: newGame,
+          );
+        }
+      }
     });
-
-    // pad zastavice!
-    if (_whiteTime <= Duration.zero) {
-      _whiteTimer!.cancel();
-      notifyListeners();
-    }
-
-    // GAME OVER
-    print('white has lost');
   }
 
   void pauseWhiteTimer() {
@@ -205,5 +227,105 @@ class GameProvider extends ChangeNotifier {
       _blackTimer!.cancel();
       notifyListeners();
     }
+  }
+
+  void gameOverListerner({
+    required BuildContext context,
+    required Function newGame,
+  }) {
+    if (game.gameOver) {
+      pauseWhiteTimer();
+      pauseBlackTimer();
+
+      // GAME OVER
+      if (context.mounted) {
+        gameOverDialog(
+          context: context,
+          timeOut: false,
+          whiteWon: false,
+          newGame: newGame,
+        );
+      }
+    }
+  }
+
+  void gameOverDialog({
+    // nedostaje logika ako padne i remi je
+    required BuildContext context,
+    required bool timeOut,
+    required bool whiteWon,
+    required Function newGame,
+  }) {
+    String results = '';
+    int whiteScore = 0;
+    int blackScore = 0;
+
+    if (timeOut) {
+      if (whiteWon) {
+        results = 'White won on time!';
+        whiteScore = _whitesScore + 1;
+      } else {
+        results = 'Black won on time!';
+        blackScore = _blacksScore + 1;
+      }
+    } else {
+      results = game.result!.readable; // method from package
+
+      if (game.drawn) {
+        // method check if the game is a draw
+        String whiteResult = game.result!.scoreString.split('-').first;
+        String blackResult = game.result!.scoreString.split('-').last;
+        whiteScore = _whitesScore += int.parse(whiteResult);
+        blackScore = _blacksScore += int.parse(blackResult);
+      } else if (game.winner == 0) {
+        String whiteResult = game.result!.scoreString.split('-').first;
+        whiteScore = _whitesScore += int.parse(whiteResult);
+      } else if (game.winner == 1) {
+        String blackResult = game.result!.scoreString.split('-').last;
+        blackScore = _blacksScore += int.parse(blackResult);
+      } else if (game.stalemate) {
+        whiteScore = whitesScore;
+        blackScore = blacksScore;
+      }
+    }
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Game Over\n $whiteScore - $blackScore',
+          textAlign: TextAlign.center,
+        ),
+        content: Text(
+          results,
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const HomeScreen()),
+                (route) => false,
+              );
+            },
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text(
+              'New Game',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

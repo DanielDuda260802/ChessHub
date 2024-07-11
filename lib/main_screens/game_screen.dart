@@ -53,6 +53,16 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
+  void checkGameOverListener() {
+    final gameProvider = context.read<GameProvider>();
+    gameProvider.gameOverListerner(
+      context: context,
+      newGame: () {
+        // start a new game
+      },
+    );
+  }
+
   void _onMove(Move move) async {
     final gameProvider = context.read<GameProvider>();
     bool result = gameProvider.game.makeSquaresMove(move);
@@ -100,6 +110,7 @@ class _GameScreenState extends State<GameScreen> {
         }
       });
     }
+    checkGameOverListener();
   }
 
   void startTimer({required bool isWhiteTimer, required Function newGame}) {
