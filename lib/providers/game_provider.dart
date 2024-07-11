@@ -2,12 +2,14 @@ import 'dart:async';
 
 import 'package:bishop/bishop.dart' as bishop;
 import 'package:chesshub/constants.dart';
+import 'package:chesshub/helper/uci_commands.dart';
 import 'package:chesshub/main_screens/home_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:square_bishop/square_bishop.dart';
 import 'package:squares/squares.dart';
+import 'package:stockfish/stockfish.dart';
 
 class GameProvider extends ChangeNotifier {
   // inicijalizacija varijabli
@@ -16,6 +18,9 @@ class GameProvider extends ChangeNotifier {
 
   bool _aiThinking = false;
   bool _flipBoard = false;
+
+  bool _playWhitesTimer = false;
+  bool _playBlacksTimer = false;
 
   bool _vsComputer = false;
   bool _isLoading = false;
@@ -43,6 +48,8 @@ class GameProvider extends ChangeNotifier {
   SquaresState get state => _state;
   bool get aiThinking => _aiThinking;
   bool get flipBoard => _flipBoard;
+  bool get playWhitesTimer => _playWhitesTimer;
+  bool get playBlacksTimer => _playBlacksTimer;
 
   int get gameLevel => _gameLevel;
   int get increment => _increment;
@@ -72,6 +79,16 @@ class GameProvider extends ChangeNotifier {
 
   void setIsLoading({required bool value}) {
     _isLoading = value;
+    notifyListeners();
+  }
+
+  void setPlayWhitesTimer({required bool value}) {
+    _playWhitesTimer = value;
+    notifyListeners();
+  }
+
+  void setPlayBlacksTimer({required bool value}) {
+    _playBlacksTimer = value;
     notifyListeners();
   }
 
@@ -150,9 +167,8 @@ class GameProvider extends ChangeNotifier {
     return result;
   }
 
-  // random move
-  void makeRandomMove() {
-    game.makeRandomMove();
+  void makeStringMove(String move) {
+    game.makeMoveSan(move);
     notifyListeners();
   }
 
@@ -163,6 +179,7 @@ class GameProvider extends ChangeNotifier {
 
   void startBlackTime({
     required BuildContext context,
+    Stockfish? stockfish,
     required Function newGame,
   }) {
     _blackTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -178,6 +195,7 @@ class GameProvider extends ChangeNotifier {
         if (context.mounted) {
           gameOverDialog(
             context: context,
+            stockfish: stockfish,
             timeOut: true,
             whiteWon: true,
             newGame: newGame,
@@ -189,6 +207,7 @@ class GameProvider extends ChangeNotifier {
 
   void startWhiteTime({
     required BuildContext context,
+    Stockfish? stockfish,
     required Function newGame,
   }) {
     _whiteTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -204,6 +223,7 @@ class GameProvider extends ChangeNotifier {
         if (context.mounted) {
           gameOverDialog(
             context: context,
+            stockfish: stockfish,
             timeOut: true,
             whiteWon: false,
             newGame: newGame,
@@ -231,6 +251,7 @@ class GameProvider extends ChangeNotifier {
 
   void gameOverListerner({
     required BuildContext context,
+    Stockfish? stockfish,
     required Function newGame,
   }) {
     if (game.gameOver) {
@@ -241,6 +262,7 @@ class GameProvider extends ChangeNotifier {
       if (context.mounted) {
         gameOverDialog(
           context: context,
+          stockfish: stockfish,
           timeOut: false,
           whiteWon: false,
           newGame: newGame,
@@ -250,12 +272,16 @@ class GameProvider extends ChangeNotifier {
   }
 
   void gameOverDialog({
-    // nedostaje logika ako padne i remi je
     required BuildContext context,
+    Stockfish? stockfish,
     required bool timeOut,
     required bool whiteWon,
     required Function newGame,
   }) {
+    if (stockfish != null) {
+      stockfish.stdin = UCICommands.stop;
+    }
+
     String results = '';
     int whiteScore = 0;
     int blackScore = 0;
@@ -327,5 +353,9 @@ class GameProvider extends ChangeNotifier {
         ],
       ),
     );
+  }
+
+  getPositionFen() {
+    return game.fen;
   }
 }

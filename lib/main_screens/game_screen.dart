@@ -2,12 +2,14 @@ import 'dart:math';
 
 import 'package:bishop/bishop.dart' as bishop;
 import 'package:chesshub/helper/helper_methods.dart';
+import 'package:chesshub/helper/uci_commands.dart';
 import 'package:chesshub/providers/game_provider.dart';
 import 'package:chesshub/service/assetsManager.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:square_bishop/square_bishop.dart';
 import 'package:squares/squares.dart';
+import 'package:stockfish/stockfish.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -17,8 +19,10 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
+  late Stockfish stockfish;
   @override
   void initState() {
+    stockfish = Stockfish();
     final gameProvider = context.read<GameProvider>();
     // briše se ploča i postavlja u početnu poziciju
     gameProvider.resetGame(newGame: false);
@@ -28,6 +32,12 @@ class _GameScreenState extends State<GameScreen> {
     }
 
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    stockfish.dispose();
+    super.dispose();
   }
 
   void letOtherPlayerPlayFirst() async {
@@ -57,10 +67,20 @@ class _GameScreenState extends State<GameScreen> {
     final gameProvider = context.read<GameProvider>();
     gameProvider.gameOverListerner(
       context: context,
+      stockfish: stockfish,
       newGame: () {
         // start a new game
       },
     );
+  }
+
+  Future<void> waitUntilReady() async {
+    print('prije: ${stockfish.state.value}');
+    while (stockfish.state.value != StockfishState.ready) {
+      print('unutra: ${stockfish.state.value}');
+      await Future.delayed(
+          const Duration(seconds: 1)); // čekaj 1 sekundu i provjeri opet
+    }
   }
 
   void _onMove(Move move) async {
@@ -75,6 +95,9 @@ class _GameScreenState extends State<GameScreen> {
             isWhiteTimer: false,
             newGame: () {},
           );
+
+          // set whites bool flag to tru so that we dont run this code again until true
+          gameProvider.setPlayWhitesTimer(value: true);
         } else {
           gameProvider.pauseBlackTimer();
 
@@ -82,43 +105,79 @@ class _GameScreenState extends State<GameScreen> {
             isWhiteTimer: true,
             newGame: () {},
           );
+          gameProvider.setPlayBlacksTimer(value: true);
         }
       });
     }
     if (gameProvider.state.state == PlayState.theirTurn &&
         !gameProvider.aiThinking) {
       gameProvider.setAiThinking(true);
-      await Future.delayed(
-          Duration(milliseconds: Random().nextInt(4750) + 250));
-      gameProvider.game.makeRandomMove();
-      gameProvider.setAiThinking(false);
-      gameProvider.setSquaresState().whenComplete(() {
-        if (gameProvider.player == Squares.white) {
-          gameProvider.pauseBlackTimer();
 
-          startTimer(
-            isWhiteTimer: true,
-            newGame: () {},
-          );
-        } else {
-          gameProvider.pauseBlackTimer();
+      // wait until stockfish is ready
+      await waitUntilReady();
 
-          startTimer(
-            isWhiteTimer: false,
-            newGame: () {},
-          );
+      // get the current position of the board and sent to stockfish
+      stockfish.stdin =
+          '${UCICommands.position} ${gameProvider.getPositionFen()}';
+
+      // set stockfish difficulty level
+      stockfish.stdin =
+          '${UCICommands.goMoveTime} ${gameProvider.gameLevel * 1000}';
+
+      stockfish.stdout.listen((event) {
+        if (event.contains(UCICommands.bestMove)) {
+          final bestMove = event.split(' ')[1];
+          gameProvider.makeStringMove(bestMove);
+          gameProvider.setAiThinking(false);
+          gameProvider.setSquaresState().whenComplete(() {
+            if (gameProvider.player == Squares.white) {
+              if (gameProvider.playWhitesTimer) {
+                gameProvider.pauseBlackTimer();
+
+                startTimer(
+                  isWhiteTimer: true,
+                  newGame: () {},
+                );
+
+                gameProvider.setPlayWhitesTimer(value: false);
+              }
+            } else {
+              if (gameProvider.playBlacksTimer) {
+                gameProvider.pauseWhiteTimer();
+
+                startTimer(
+                  isWhiteTimer: false,
+                  newGame: () {},
+                );
+
+                gameProvider.setPlayBlacksTimer(value: true);
+              }
+            }
+          });
         }
       });
     }
+    await Future.delayed(const Duration(seconds: 1));
     checkGameOverListener();
   }
 
-  void startTimer({required bool isWhiteTimer, required Function newGame}) {
+  void startTimer({
+    required bool isWhiteTimer,
+    required Function newGame,
+  }) {
     final gameProvider = context.read<GameProvider>();
     if (isWhiteTimer == true) {
-      gameProvider.startWhiteTime(context: context, newGame: newGame);
+      gameProvider.startWhiteTime(
+        context: context,
+        stockfish: stockfish,
+        newGame: newGame,
+      );
     } else {
-      gameProvider.startBlackTime(context: context, newGame: newGame);
+      gameProvider.startBlackTime(
+        context: context,
+        stockfish: stockfish,
+        newGame: newGame,
+      );
     }
   }
 
