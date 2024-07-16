@@ -1,5 +1,5 @@
 import 'dart:async';
-
+import 'dart:io';
 import 'package:bishop/bishop.dart' as bishop;
 import 'package:chesshub/constants.dart';
 import 'package:chesshub/helper/uci_commands.dart';
@@ -9,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:square_bishop/square_bishop.dart';
 import 'package:squares/squares.dart';
-import 'package:stockfish/stockfish.dart';
 
 class GameProvider extends ChangeNotifier {
   // inicijalizacija varijabli
@@ -167,11 +166,6 @@ class GameProvider extends ChangeNotifier {
     return result;
   }
 
-  void makeStringMove(String move) {
-    game.makeMoveSan(move);
-    notifyListeners();
-  }
-
   void flipChessBoard() {
     _flipBoard = !_flipBoard;
     notifyListeners();
@@ -179,7 +173,7 @@ class GameProvider extends ChangeNotifier {
 
   void startBlackTime({
     required BuildContext context,
-    Stockfish? stockfish,
+    Process? stockfish,
     required Function newGame,
   }) {
     _blackTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -207,7 +201,7 @@ class GameProvider extends ChangeNotifier {
 
   void startWhiteTime({
     required BuildContext context,
-    Stockfish? stockfish,
+    Process? stockfish,
     required Function newGame,
   }) {
     _whiteTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -251,7 +245,7 @@ class GameProvider extends ChangeNotifier {
 
   void gameOverListerner({
     required BuildContext context,
-    Stockfish? stockfish,
+    Process? stockfish,
     required Function newGame,
   }) {
     if (game.gameOver) {
@@ -273,13 +267,13 @@ class GameProvider extends ChangeNotifier {
 
   void gameOverDialog({
     required BuildContext context,
-    Stockfish? stockfish,
+    Process? stockfish,
     required bool timeOut,
     required bool whiteWon,
     required Function newGame,
   }) {
     if (stockfish != null) {
-      stockfish.stdin = UCICommands.stop;
+      stockfish.stdin.writeln(UCICommands.stop);
     }
 
     String results = '';
