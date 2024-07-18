@@ -1,4 +1,5 @@
 import 'package:chesshub/authentication/login_screen.dart';
+import 'package:chesshub/authentication/sign_up_screen.dart';
 import 'package:chesshub/constants.dart';
 import 'package:chesshub/main_screens/about_screen.dart';
 import 'package:chesshub/main_screens/game_screen.dart';
@@ -38,6 +39,7 @@ class MyApp extends StatelessWidget {
         Constants.aboutScreen: (context) => const AboutScreen(),
         Constants.gameTempoScreen: (context) => const GameTempoScreen(),
         Constants.loginScreen: (context) => const LoginScreen(),
+        Constants.signUpScreen: (context) => const SignUpScreen(),
       },
     );
   }

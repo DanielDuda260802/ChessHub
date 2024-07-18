@@ -1,7 +1,9 @@
+import 'package:chesshub/constants.dart';
 import 'package:chesshub/helper/helper_methods.dart';
 import 'package:chesshub/service/assetsManager.dart';
 import 'package:chesshub/widgets/main_authentication_button.dart';
 import 'package:chesshub/widgets/social_buttons.dart';
+import 'package:chesshub/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -30,6 +32,13 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(
                 height: 30,
+              ),
+              const Text(
+                'Login',
+                style: TextStyle(
+                  fontSize: 50,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               TextFormField(
                 decoration: textFormDecoration.copyWith(
@@ -62,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 height: 30,
               ),
               MainAuthenticationButton(
-                label: 'Login',
+                label: 'LOGIN',
                 onPressed: () {
                   // login user with email and password
                 },
@@ -77,10 +86,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: TextStyle(
                   color: Colors.grey,
                   fontWeight: FontWeight.bold,
+                  fontSize: 20,
                 ),
               ),
               const SizedBox(
-                height: 10,
+                height: 30,
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -107,6 +117,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     onTap: () {},
                   ),
                 ],
+              ),
+              const SizedBox(
+                height: 60,
+              ),
+              HaveAccoutWidget(
+                label: 'Don\'t have account?',
+                labelAction: 'Sign Up',
+                onPressed: () {
+                  Navigator.pushNamed(context, Constants.signUpScreen);
+                },
               )
             ],
           ),

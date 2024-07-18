@@ -117,6 +117,43 @@ class BuildCustomTime extends StatelessWidget {
   }
 }
 
+class HaveAccoutWidget extends StatelessWidget {
+  const HaveAccoutWidget(
+      {super.key,
+      required this.label,
+      required this.labelAction,
+      required this.onPressed});
+
+  final String label;
+  final String labelAction;
+  final Function() onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 20,
+          ),
+        ),
+        TextButton(
+            onPressed: onPressed,
+            child: Text(
+              labelAction,
+              style: const TextStyle(
+                color: Colors.blue,
+                fontWeight: FontWeight.bold,
+                fontSize: 30,
+              ),
+            ))
+      ],
+    );
+  }
+}
+
 showSnackBar({required BuildContext context, required String content}) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(content)));
 }
