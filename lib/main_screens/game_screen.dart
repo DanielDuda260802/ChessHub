@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:bishop/bishop.dart' as bishop;
+import 'package:chesshub/constants.dart';
 import 'package:chesshub/helper/helper_methods.dart';
 import 'package:chesshub/helper/uci_commands.dart';
 import 'package:chesshub/providers/game_provider.dart';
@@ -225,104 +226,145 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     final gameProvider = context.read<GameProvider>();
-    return Scaffold(
-      appBar: AppBar(
-          leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () {
-                Navigator.pop(context);
-              }),
-          backgroundColor: Colors.black,
-          title: const Text('ChessHub', style: TextStyle(color: Colors.white)),
-          actions: [
-            const SizedBox(height: 16),
-            IconButton(
-              onPressed: () {
-                gameProvider.resetGame(newGame: false);
-              },
-              icon: const Icon(Icons.start, color: Colors.white),
-            ),
-            IconButton(
-              onPressed: () {
-                gameProvider.flipChessBoard();
-              },
-              icon: const Icon(Icons.rotate_left, color: Colors.white),
-            ),
-          ]),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          double boardSize =
-              min(constraints.maxWidth, constraints.maxHeight) * 0.8;
 
-          return Center(
-            child:
-                Consumer<GameProvider>(builder: (context, gameProvider, child) {
-              String whiteTimer = getTimerToDisplay(
-                gameProvider: gameProvider,
-                isUser: true,
-              );
-              String blackTimer = getTimerToDisplay(
-                gameProvider: gameProvider,
-                isUser: false,
-              );
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ListTile(
-                    leading: CircleAvatar(
-                      radius: 25,
-                      backgroundImage:
-                          AssetImage(AssetsManager.chessEngine_image),
+    return WillPopScope(
+      onWillPop: () async {
+        bool? leave = await _showExitConfirmDialog(context);
+        if (leave != null && leave) {
+          _sendCommand(UCICommands.stop);
+          await Future.delayed(const Duration(milliseconds: 200))
+              .whenComplete(() {
+            Navigator.pushNamedAndRemoveUntil(
+                context, Constants.homeScreen, (route) => false);
+          });
+        }
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+            backgroundColor: Colors.black,
+            title:
+                const Text('ChessHub', style: TextStyle(color: Colors.white)),
+            actions: [
+              const SizedBox(height: 16),
+              IconButton(
+                onPressed: () {
+                  gameProvider.resetGame(newGame: false);
+                },
+                icon: const Icon(Icons.start, color: Colors.white),
+              ),
+              IconButton(
+                onPressed: () {
+                  gameProvider.flipChessBoard();
+                },
+                icon: const Icon(Icons.rotate_left, color: Colors.white),
+              ),
+            ]),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            double boardSize =
+                min(constraints.maxWidth, constraints.maxHeight) * 0.8;
+
+            return Center(
+              child: Consumer<GameProvider>(
+                  builder: (context, gameProvider, child) {
+                String whiteTimer = getTimerToDisplay(
+                  gameProvider: gameProvider,
+                  isUser: true,
+                );
+                String blackTimer = getTimerToDisplay(
+                  gameProvider: gameProvider,
+                  isUser: false,
+                );
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ListTile(
+                      leading: CircleAvatar(
+                        radius: 25,
+                        backgroundImage:
+                            AssetImage(AssetsManager.chessEngine_image),
+                      ),
+                      title: const Text('Stockfish'),
+                      subtitle: const Text('Rating: 3000'),
+                      trailing: Text(
+                        blackTimer,
+                        style: const TextStyle(fontSize: 18),
+                      ),
                     ),
-                    title: const Text('Stockfish'),
-                    subtitle: const Text('Rating: 3000'),
-                    trailing: Text(
-                      blackTimer,
-                      style: const TextStyle(fontSize: 18),
-                    ),
-                  ),
-                  Expanded(
-                    child: Container(
-                      width: boardSize,
-                      padding: const EdgeInsets.all(4.0),
-                      child: AspectRatio(
-                        aspectRatio: 1,
-                        child: BoardController(
-                          state: gameProvider.flipBoard
-                              ? gameProvider.state.board.flipped()
-                              : gameProvider.state.board,
-                          playState: gameProvider.state.state,
-                          pieceSet: PieceSet.merida(),
-                          theme: BoardTheme.brown,
-                          moves: gameProvider.state.moves,
-                          onMove: _onMove,
-                          onPremove: _onMove,
-                          markerTheme: MarkerTheme(
-                            empty: MarkerTheme.dot,
-                            piece: MarkerTheme.corners(),
+                    Expanded(
+                      child: Container(
+                        width: boardSize,
+                        padding: const EdgeInsets.all(4.0),
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: BoardController(
+                            state: gameProvider.flipBoard
+                                ? gameProvider.state.board.flipped()
+                                : gameProvider.state.board,
+                            playState: gameProvider.state.state,
+                            pieceSet: PieceSet.merida(),
+                            theme: BoardTheme.brown,
+                            moves: gameProvider.state.moves,
+                            onMove: _onMove,
+                            onPremove: _onMove,
+                            markerTheme: MarkerTheme(
+                              empty: MarkerTheme.dot,
+                              piece: MarkerTheme.corners(),
+                            ),
+                            promotionBehaviour: PromotionBehaviour.autoPremove,
                           ),
-                          promotionBehaviour: PromotionBehaviour.autoPremove,
                         ),
                       ),
                     ),
-                  ),
-                  ListTile(
-                    leading: CircleAvatar(
-                      radius: 25,
-                      backgroundImage: AssetImage(AssetsManager.user_image),
+                    ListTile(
+                      leading: CircleAvatar(
+                        radius: 25,
+                        backgroundImage: AssetImage(AssetsManager.user_image),
+                      ),
+                      title: const Text('User_01'),
+                      subtitle: const Text('Rating: 1200'),
+                      trailing: Text(
+                        whiteTimer,
+                        style: const TextStyle(fontSize: 18),
+                      ),
                     ),
-                    title: const Text('User_01'),
-                    subtitle: const Text('Rating: 1200'),
-                    trailing: Text(
-                      whiteTimer,
-                      style: const TextStyle(fontSize: 18),
-                    ),
-                  ),
-                ],
-              );
-            }),
-          );
-        },
+                  ],
+                );
+              }),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<bool?> _showExitConfirmDialog(BuildContext context) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          'Leave game?',
+          textAlign: TextAlign.center,
+        ),
+        content: const Text(
+          'Are you sure to leave this game',
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(false);
+            },
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(true);
+            },
+            child: const Text('Yes'),
+          ),
+        ],
       ),
     );
   }
