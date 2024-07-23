@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "994334466566",
+    "project_id": "chesshub-d0d64",
+    "storage_bucket": "chesshub-d0d64.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:994334466566:android:734f158fa6621e39761987",
+        "android_client_info": {
+          "package_name": "com.example.chesshub"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAxaRrT4UIyfsV5o3vjKRYwY1ENDvnsyQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

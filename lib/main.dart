@@ -1,16 +1,22 @@
 import 'package:chesshub/authentication/login_screen.dart';
 import 'package:chesshub/authentication/sign_up_screen.dart';
 import 'package:chesshub/constants.dart';
+import 'package:chesshub/firebase_options.dart';
 import 'package:chesshub/main_screens/about_screen.dart';
 import 'package:chesshub/main_screens/game_screen.dart';
 import 'package:chesshub/main_screens/game_tempo_screen.dart';
 import 'package:chesshub/main_screens/home_screen.dart';
 import 'package:chesshub/main_screens/settings_screen.dart';
 import 'package:chesshub/providers/game_provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(MultiProvider(providers: [
     ChangeNotifierProvider(
       create: (_) => GameProvider(),
