@@ -16,119 +16,134 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
+    final screenWidth = mediaQuery.size.width;
+
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 30,
-          vertical: 20,
+        padding: EdgeInsets.symmetric(
+          horizontal: screenWidth * 0.08,
+          vertical: screenHeight * 0.02,
         ),
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: 120,
-                backgroundImage: AssetImage(AssetsManager.logo),
-              ),
-              const SizedBox(
-                height: 30,
-              ),
-              const Text(
-                'Login',
-                style: TextStyle(
-                  fontSize: 50,
-                  fontWeight: FontWeight.bold,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  radius: screenWidth * 0.2,
+                  backgroundImage: AssetImage(AssetsManager.logo),
                 ),
-              ),
-              TextFormField(
-                decoration: textFormDecoration.copyWith(
-                  hintText: 'Enter your email',
-                  labelText: 'Enter your email',
+                SizedBox(
+                  height: screenHeight * 0.01,
                 ),
-              ),
-              const SizedBox(
-                height: 30,
-              ),
-              TextFormField(
-                decoration: textFormDecoration.copyWith(
+                Text(
+                  'Login',
+                  style: TextStyle(
+                    fontSize: screenHeight * 0.04,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(
+                  height: screenHeight * 0.02,
+                ),
+                TextFormField(
+                  decoration: textFormDecoration.copyWith(
+                    hintText: 'Enter your email',
+                    labelText: 'Enter your email',
+                  ),
+                ),
+                SizedBox(
+                  height: screenHeight * 0.02,
+                ),
+                TextFormField(
+                  decoration: textFormDecoration.copyWith(
                     labelText: 'Enter your password',
-                    hintText: 'Enter your password'),
-                obscureText: true,
-              ),
-              const SizedBox(
-                height: 10,
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
+                    hintText: 'Enter your password',
+                  ),
+                  obscureText: true,
+                ),
+                SizedBox(
+                  height: screenHeight * 0.01,
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      // zaboravljena lozinka
+                    },
+                    child: Text(
+                      'Forgot Password?',
+                      style: TextStyle(fontSize: screenHeight * 0.02),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  height: screenHeight * 0.03,
+                ),
+                MainAuthenticationButton(
+                  label: 'LOGIN',
                   onPressed: () {
-                    // zaboravljena lozinka
+                    // login user with email and password
                   },
-                  child: const Text('Forgot Password?'),
+                  fontSize: screenHeight * 0.03,
                 ),
-              ),
-              const SizedBox(
-                height: 30,
-              ),
-              MainAuthenticationButton(
-                label: 'LOGIN',
-                onPressed: () {
-                  // login user with email and password
-                },
-                fontSize: 30,
-              ),
-              const SizedBox(
-                height: 10,
-              ),
-              const Text(
-                '- OR - \n Sign in With',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
+                SizedBox(
+                  height: screenHeight * 0.02,
                 ),
-              ),
-              const SizedBox(
-                height: 30,
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  SocialButton(
-                    label: 'Guest',
-                    assetImage: AssetsManager.user_image,
-                    height: 70,
-                    width: 70,
-                    onTap: () {},
+                Text(
+                  '- OR - \n Sign in With',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                    fontSize: screenHeight * 0.025,
                   ),
-                  SocialButton(
-                    label: 'Google',
-                    assetImage: AssetsManager.google_image,
-                    height: 70,
-                    width: 70,
-                    onTap: () {},
-                  ),
-                  SocialButton(
-                    label: 'Facebook',
-                    assetImage: AssetsManager.facebook_image,
-                    height: 70,
-                    width: 70,
-                    onTap: () {},
-                  ),
-                ],
-              ),
-              const SizedBox(
-                height: 60,
-              ),
-              HaveAccoutWidget(
-                label: 'Don\'t have account?',
-                labelAction: 'Sign Up',
-                onPressed: () {
-                  Navigator.pushNamed(context, Constants.signUpScreen);
-                },
-              )
-            ],
+                ),
+                SizedBox(
+                  height: screenHeight * 0.03,
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    SocialButton(
+                      label: 'Guest',
+                      assetImage: AssetsManager.user_image,
+                      height: screenWidth * 0.12,
+                      width: screenWidth * 0.12,
+                      onTap: () {},
+                    ),
+                    SocialButton(
+                      label: 'Google',
+                      assetImage: AssetsManager.google_image,
+                      height: screenWidth * 0.12,
+                      width: screenWidth * 0.12,
+                      onTap: () {},
+                    ),
+                    SocialButton(
+                      label: 'Facebook',
+                      assetImage: AssetsManager.facebook_image,
+                      height: screenWidth * 0.12,
+                      width: screenWidth * 0.12,
+                      onTap: () {},
+                    ),
+                  ],
+                ),
+                SizedBox(
+                  height: screenHeight * 0.03,
+                ),
+                HaveAccoutWidget(
+                  label: 'Don\'t have account?',
+                  labelAction: 'Sign Up',
+                  onPressed: () {
+                    Navigator.pushNamed(context, Constants.signUpScreen);
+                  },
+                  labelFontSize: screenHeight * 0.02,
+                  actionFontSize: screenHeight * 0.025,
+                ),
+              ],
+            ),
           ),
         ),
       ),

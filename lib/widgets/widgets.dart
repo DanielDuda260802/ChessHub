@@ -118,15 +118,20 @@ class BuildCustomTime extends StatelessWidget {
 }
 
 class HaveAccoutWidget extends StatelessWidget {
-  const HaveAccoutWidget(
-      {super.key,
-      required this.label,
-      required this.labelAction,
-      required this.onPressed});
+  const HaveAccoutWidget({
+    super.key,
+    required this.label,
+    required this.labelAction,
+    required this.onPressed,
+    required this.labelFontSize,
+    required this.actionFontSize,
+  });
 
   final String label;
   final String labelAction;
   final Function() onPressed;
+  final double labelFontSize;
+  final double actionFontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -135,20 +140,21 @@ class HaveAccoutWidget extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 20,
+          style: TextStyle(
+            fontSize: labelFontSize,
           ),
         ),
         TextButton(
-            onPressed: onPressed,
-            child: Text(
-              labelAction,
-              style: const TextStyle(
-                color: Colors.blue,
-                fontWeight: FontWeight.bold,
-                fontSize: 30,
-              ),
-            ))
+          onPressed: onPressed,
+          child: Text(
+            labelAction,
+            style: TextStyle(
+              color: Colors.blue,
+              fontWeight: FontWeight.bold,
+              fontSize: actionFontSize,
+            ),
+          ),
+        ),
       ],
     );
   }
