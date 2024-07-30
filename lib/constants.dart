@@ -17,6 +17,9 @@ class Constants {
   static const String email = 'email';
   static const String image = 'image';
   static const String createdAt = 'createdAt';
+
+  static const String userImage = 'userImage';
+  static const String users = 'users';
 }
 
 enum PlayerColor {

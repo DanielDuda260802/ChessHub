@@ -1,13 +1,13 @@
 import 'dart:io';
 import 'package:chesshub/constants.dart';
 import 'package:chesshub/helper/helper_methods.dart';
+import 'package:chesshub/models/user.dart';
 import 'package:chesshub/providers/authentication_provider.dart';
 import 'package:chesshub/service/assetsManager.dart';
 import 'package:chesshub/widgets/main_authentication_button.dart';
 import 'package:chesshub/widgets/widgets.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:provider/provider.dart';
 
@@ -50,8 +50,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       maxHeight: 800,
       maxWidth: 800,
     );
-
-    popCropDialog();
 
     if (croppedFile != null) {
       setState(() {
@@ -101,30 +99,43 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   void signUpUserToFirebase() async {
+    final authProvider = context.read<AuthenticationProvider>();
     if (formKey.currentState!.validate()) {
       // Save the form
       formKey.currentState!.save();
 
-      // Ispisi email i password za provjeru
-      print('Email: $email, Password: $password');
-
-      // Provjeri jesu li email ili password prazni ili null
-      if (email.isEmpty || password.isEmpty) {
-        print('Email ili password su prazni!');
-        showSnackBar(context: context, content: 'Molimo popunite sva polja');
-        return;
-      }
-
-      UserCredential? userCredential = await context
-          .read<AuthenticationProvider>()
-          .createUserWithEmailAndPassword(
-            email: email,
-            password: password,
-          );
+      UserCredential? userCredential =
+          await authProvider.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
       if (userCredential != null) {
         // user has been created
-        print('user created: ${userCredential.user!.uid}');
+        UserModel userModel = UserModel(
+          uid: userCredential.user!.uid,
+          name: name,
+          email: email,
+          image: '',
+          createdAt: '',
+        );
+
+        authProvider.saveUserDataToFirestore(
+          currentUser: userModel,
+          fileImage: finalFileImage,
+          onSuccess: () async {
+            // Sign out the user and navigate to login screen
+            formKey.currentState!.reset();
+            showSnackBar(context: context, content: 'Sign Up successful');
+
+            await authProvider.signOut().whenComplete(() {
+              Navigator.pop(context);
+            });
+          },
+          onFail: (error) {
+            showSnackBar(context: context, content: error.toString());
+          },
+        );
       }
     } else {
       showSnackBar(context: context, content: 'Please fill all fields');
@@ -133,6 +144,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthenticationProvider>();
     final mediaQuery = MediaQuery.of(context);
     final screenHeight = mediaQuery.size.height;
     final screenWidth = mediaQuery.size.width;
@@ -317,14 +329,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   SizedBox(
                     height: screenHeight * 0.03,
                   ),
-                  MainAuthenticationButton(
-                    label: 'SIGN UP',
-                    onPressed: () {
-                      // register user with email and password
-                      signUpUserToFirebase();
-                    },
-                    fontSize: screenHeight * 0.03,
-                  ),
+                  authProvider.isLoading
+                      ? const CircularProgressIndicator()
+                      : MainAuthenticationButton(
+                          label: 'SIGN UP',
+                          onPressed: () {
+                            // register user with email and password
+                            signUpUserToFirebase();
+                          },
+                          fontSize: screenHeight * 0.03,
+                        ),
                   SizedBox(
                     height: screenHeight * 0.02,
                   ),
