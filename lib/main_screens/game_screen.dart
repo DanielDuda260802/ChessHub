@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
-import 'package:bishop/bishop.dart' as bishop;
 import 'package:chesshub/constants.dart';
 import 'package:chesshub/helper/helper_methods.dart';
 import 'package:chesshub/helper/uci_commands.dart';

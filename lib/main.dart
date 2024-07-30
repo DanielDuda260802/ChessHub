@@ -7,6 +7,7 @@ import 'package:chesshub/main_screens/game_screen.dart';
 import 'package:chesshub/main_screens/game_tempo_screen.dart';
 import 'package:chesshub/main_screens/home_screen.dart';
 import 'package:chesshub/main_screens/settings_screen.dart';
+import 'package:chesshub/providers/authentication_provider.dart';
 import 'package:chesshub/providers/game_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -20,7 +21,10 @@ void main() async {
   runApp(MultiProvider(providers: [
     ChangeNotifierProvider(
       create: (_) => GameProvider(),
-    )
+    ),
+    ChangeNotifierProvider(
+      create: (_) => AuthenticationProvider(),
+    ),
   ], child: const MyApp()));
 }
 

@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:bishop/bishop.dart';
 import 'package:chesshub/providers/game_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -21,7 +20,7 @@ Widget buildGameType(
               ? Icon(icon)
               : gameTime! == '60+0'
                   ? const SizedBox.shrink()
-                  : Text(gameTime!),
+                  : Text(gameTime),
           const SizedBox(
             height: 15,
           ),
@@ -115,4 +114,11 @@ Future<File?> pickImage({
     }
   }
   return fileImage;
+}
+
+bool validateEmail(String email) {
+  final RegExp emailRegex =
+      RegExp(r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$');
+
+  return emailRegex.hasMatch(email);
 }

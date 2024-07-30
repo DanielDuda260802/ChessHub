@@ -1,4 +1,3 @@
-import 'package:bishop/bishop.dart';
 import 'package:chesshub/constants.dart';
 import 'package:chesshub/providers/game_provider.dart';
 import 'package:chesshub/widgets/widgets.dart';
