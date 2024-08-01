@@ -48,20 +48,18 @@ class GameDifficultyRadioButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final capitalizedTitle = title[0].toUpperCase() + title.substring(1);
-    return Expanded(
-      child: RadioListTile<GameDifficulty>(
-        title: Text(
-          capitalizedTitle,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        value: value,
-        dense: true,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        contentPadding: EdgeInsets.zero,
-        tileColor: Colors.grey[300],
-        groupValue: groupValue,
-        onChanged: onChanged,
+    return RadioListTile<GameDifficulty>(
+      title: Text(
+        capitalizedTitle,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
       ),
+      value: value,
+      dense: true,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      contentPadding: EdgeInsets.zero,
+      tileColor: Colors.grey[300],
+      groupValue: groupValue,
+      onChanged: onChanged,
     );
   }
 }
@@ -102,7 +100,7 @@ class BuildCustomTime extends StatelessWidget {
                 child: Text(
                   time,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 25, color: Colors.black),
+                  style: const TextStyle(fontSize: 16, color: Colors.black),
                 ),
               ),
             ),

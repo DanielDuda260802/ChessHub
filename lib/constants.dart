@@ -20,6 +20,9 @@ class Constants {
 
   static const String userImage = 'userImage';
   static const String users = 'users';
+
+  static const String userModel = 'userModel';
+  static const String isSignedIn = 'isSignedIn';
 }
 
 enum PlayerColor {

@@ -19,53 +19,96 @@ class _GameTempoScreenState extends State<GameTempoScreen> {
   @override
   Widget build(BuildContext context) {
     final gameProvider = context.read<GameProvider>();
-    // print('VS COMPUTER VALUE: ${gameProvider.vsComputer} )
-    return Scaffold(
-        appBar: AppBar(
-            backgroundColor: Colors.black,
-            title: const Text(
-              'Choose game tempo',
-              style: TextStyle(color: Colors.white),
-            ),
-            leading: IconButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                icon: const Icon(Icons.arrow_back, color: Colors.white))),
-        body: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 5, childAspectRatio: 1.5),
-              itemCount: gameTempos.length,
-              itemBuilder: (context, index) {
-                final String label = gameTempos[index].split(' ')[0];
-                final String tempo = gameTempos[index].split(' ')[1];
+    final mediaQuery = MediaQuery.of(context);
+    final screenWidth = mediaQuery.size.width;
+    final crossAxisCount =
+        screenWidth > 600 ? 4 : 2; // Prilagodba broja stupaca
 
-                return buildGameType(
-                    label: label,
-                    gameTime: tempo,
-                    onTap: () {
-                      if (label == Constants.custom) {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => GameStartScreen(
-                                      isCustomTime: true,
-                                      gameTime: tempo,
-                                    )));
-                      } else {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => GameStartScreen(
-                                isCustomTime: false,
-                                gameTime: tempo,
-                              ),
-                            ));
-                      }
-                    });
-              }),
-        ));
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        title: const Text(
+          'Choose game tempo',
+          style: TextStyle(color: Colors.white),
+        ),
+        leading: IconButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: GridView.builder(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: 2, // Povećanje aspect ratio za bolje poravnanje
+          ),
+          itemCount: gameTempos.length,
+          itemBuilder: (context, index) {
+            final String label = gameTempos[index].split(' ')[0];
+            final String tempo = gameTempos[index].split(' ')[1];
+
+            return buildGameType(
+              label: label,
+              gameTime: tempo,
+              onTap: () {
+                if (label == Constants.custom) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GameStartScreen(
+                        isCustomTime: true,
+                        gameTime: tempo,
+                      ),
+                    ),
+                  );
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GameStartScreen(
+                        isCustomTime: false,
+                        gameTime: tempo,
+                      ),
+                    ),
+                  );
+                }
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget buildGameType({
+    required String label,
+    required String gameTime,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                gameTime,
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
