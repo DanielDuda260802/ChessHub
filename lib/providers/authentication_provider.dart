@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:ffi';
 import 'dart:io';
 
 import 'package:chesshub/models/user.dart';
@@ -72,7 +71,7 @@ class AuthenticationProvider extends ChangeNotifier {
   Future getUserDataFromFirestore() async {
     await firebaseFirestore
         .collection(Constants.users)
-        .doc(uid)
+        .doc(firebaseAuth.currentUser!.uid)
         .get()
         .then((DocumentSnapshot documentSnapshot) {
       _userModel =
