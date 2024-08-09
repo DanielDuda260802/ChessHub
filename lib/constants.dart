@@ -53,6 +53,10 @@ class Constants {
 
   static const String userName = 'userName';
   static const String gameScore = 'gameScore';
+
+  static const String searchingPlayerText =
+      'Searching for player.. please wait...';
+  static const String joiningGameText = 'Joining game, please wait...';
 }
 
 enum PlayerColor {

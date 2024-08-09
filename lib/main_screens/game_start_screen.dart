@@ -1,4 +1,5 @@
 import 'package:chesshub/constants.dart';
+import 'package:chesshub/providers/authentication_provider.dart';
 import 'package:chesshub/providers/game_provider.dart';
 import 'package:chesshub/widgets/widgets.dart';
 import 'package:flutter/material.dart';
@@ -51,16 +52,25 @@ class _GameStartScreenState extends State<GameStartScreen> {
               const SizedBox(height: 20), // Added space between sections
               if (gameProvider.vsComputer)
                 _buildGameDifficultySelection(screenWidth, gameProvider),
-              const SizedBox(height: 20), // Added space before the button
-              ElevatedButton(
-                onPressed: () {
-                  playGame(gameProvider: gameProvider);
-                },
-                child: const Text('Play'),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: Size(screenWidth * 0.8, 50),
-                ),
+              const SizedBox(height: 20),
+
+              gameProvider.isLoading
+                  ? const CircularProgressIndicator()
+                  : ElevatedButton(
+                      onPressed: () {
+                        playGame(gameProvider: gameProvider);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: Size(screenWidth * 0.8, 50),
+                      ),
+                      child: const Text('Play'),
+                    ),
+              const SizedBox(
+                height: 20,
               ),
+              gameProvider.vsComputer
+                  ? const SizedBox.shrink()
+                  : Text(gameProvider.waitingText)
             ],
           ),
         ),
@@ -232,6 +242,7 @@ class _GameStartScreenState extends State<GameStartScreen> {
   }
 
   void playGame({required GameProvider gameProvider}) async {
+    final userModel = context.read<AuthenticationProvider>().userModel;
     if (widget.isCustomTime) {
       if (whiteTimeInMinutes <= 0 || blackTimeInMinutes <= 0) {
         showSnackBar(context: context, content: 'Time cannot be 0.');
@@ -273,6 +284,24 @@ class _GameStartScreenState extends State<GameStartScreen> {
           Navigator.pushNamed(context, Constants.gameScreen);
         } else {
           //search for players
+          gameProvider.searchPlayer(
+            userModel: userModel!,
+            onSuccess: () {
+              gameProvider.setIsLoading(value: false);
+
+              if (gameProvider.waitingText == Constants.searchingPlayerText) {
+                // stay on this screen and wait
+                debugPrint('Wait on this screen');
+              } else {
+                // navigate to gameScreen
+                debugPrint('Going to gameScreen');
+              }
+            },
+            onFail: (error) {
+              gameProvider.setIsLoading(value: false);
+              showSnackBar(context: context, content: error);
+            },
+          );
         }
       });
     }

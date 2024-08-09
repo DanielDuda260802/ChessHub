@@ -365,6 +365,67 @@ class GameProvider extends ChangeNotifier {
     return game.fen;
   }
 
+  String _waitingText = '';
+
+  String get waitingText => _waitingText;
+
+  setWaitingtext() {
+    _waitingText = '';
+    notifyListeners();
+  }
+
+  Future searchPlayer({
+    required UserModel userModel,
+    required Function() onSuccess,
+    required Function(String) onFail,
+  }) async {
+    try {
+      final availableGames =
+          await firebaseFirestore.collection(Constants.availableGames).get();
+
+      // check if there are any available games
+      if (availableGames.docs.isNotEmpty) {
+        final List<DocumentSnapshot> gamesList = availableGames.docs
+            .where((element) => element[Constants.isPlaying] == false)
+            .toList();
+
+        // check if there are no games
+        if (gamesList.isEmpty) {
+          _waitingText = Constants.searchingPlayerText;
+          notifyListeners();
+          createNewGameInFirestore(
+            userModel: userModel,
+            onSuccess: onSuccess,
+            onFail: onFail,
+          );
+        } else {
+          //join a game
+          _waitingText = Constants.joiningGameText;
+          notifyListeners();
+          joinGame(
+            game: gamesList.first,
+            userModel: userModel,
+            onSuccess: onSuccess,
+            onFail: onFail,
+          );
+        }
+      } else {
+        // we dont have any available games
+        _waitingText = Constants.searchingPlayerText;
+        notifyListeners();
+        createNewGameInFirestore(
+          userModel: userModel,
+          onSuccess: onSuccess,
+          onFail: onFail,
+        );
+      }
+    } on FirebaseException catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      onFail(e.toString());
+    }
+  }
+
   void createNewGameInFirestore({
     required UserModel userModel,
     required Function onSuccess,
