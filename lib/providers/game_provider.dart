@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:bishop/bishop.dart' as bishop;
 import 'package:chesshub/constants.dart';
 import 'package:chesshub/helper/uci_commands.dart';
@@ -10,8 +9,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:square_bishop/square_bishop.dart';
 import 'package:squares/squares.dart';
+import 'package:stockfish/stockfish.dart';
 import 'package:uuid/uuid.dart';
 
 class GameProvider extends ChangeNotifier {
@@ -22,8 +23,8 @@ class GameProvider extends ChangeNotifier {
   bool _aiThinking = false;
   bool _flipBoard = false;
 
-  bool _playWhitesTimer = false;
-  bool _playBlacksTimer = false;
+  bool _playWhitesTimer = true;
+  bool _playBlacksTimer = true;
 
   bool _vsComputer = false;
   bool _isLoading = false;
@@ -93,12 +94,13 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setPlayWhitesTimer({required bool value}) {
+  Future<void> setPlayWhitesTimer({required bool value}) async {
     _playWhitesTimer = value;
     notifyListeners();
   }
 
-  void setPlayBlacksTimer({required bool value}) {
+  // set play blacksTimer
+  Future<void> setPlayBlacksTimer({required bool value}) async {
     _playBlacksTimer = value;
     notifyListeners();
   }
@@ -178,6 +180,12 @@ class GameProvider extends ChangeNotifier {
     return result;
   }
 
+  bool makeStringMove(String bestMove) {
+    bool result = game.makeMoveString(bestMove);
+    notifyListeners();
+    return result;
+  }
+
   void flipChessBoard() {
     _flipBoard = !_flipBoard;
     notifyListeners();
@@ -185,7 +193,7 @@ class GameProvider extends ChangeNotifier {
 
   void startBlackTime({
     required BuildContext context,
-    Process? stockfish,
+    Stockfish? stockfish,
     required Function newGame,
   }) {
     _blackTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -213,7 +221,7 @@ class GameProvider extends ChangeNotifier {
 
   void startWhiteTime({
     required BuildContext context,
-    Process? stockfish,
+    Stockfish? stockfish,
     required Function newGame,
   }) {
     _whiteTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -257,7 +265,7 @@ class GameProvider extends ChangeNotifier {
 
   void gameOverListerner({
     required BuildContext context,
-    Process? stockfish,
+    Stockfish? stockfish,
     required Function newGame,
   }) {
     if (game.gameOver) {
@@ -279,13 +287,13 @@ class GameProvider extends ChangeNotifier {
 
   void gameOverDialog({
     required BuildContext context,
-    Process? stockfish,
+    Stockfish? stockfish,
     required bool timeOut,
     required bool whiteWon,
     required Function newGame,
   }) {
     if (stockfish != null) {
-      stockfish.stdin.writeln(UCICommands.stop);
+      stockfish.stdin = UCICommands.stop;
     }
 
     String results = '';
@@ -552,6 +560,44 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
+  // stop the listening
+  StreamSubscription? isPlayingStreamSubscription;
+
+  void checkIfOpponentJoined({
+    required UserModel userModel,
+    required Function() onSuccess,
+  }) async {
+    // stream firestore if the player has joined
+    isPlayingStreamSubscription = firebaseFirestore
+        .collection(Constants.availableGames)
+        .doc(userModel.uid)
+        .snapshots()
+        .listen((event) async {
+      // check if the game exist
+      if (event.exists) {
+        final DocumentSnapshot game = event;
+
+        // check if isPlaying == true
+        if (game[Constants.isPlaying]) {
+          isPlayingStreamSubscription!.cancel();
+          await Future.delayed(const Duration(milliseconds: 100));
+          // get data from the game we are joining
+          _gameCreatorUid = game[Constants.gameCreatorUid];
+          _gameCreatorName = game[Constants.gameCreatorName];
+          _gameCreatorPhoto = game[Constants.gameCreatorImage];
+          _userId = game[Constants.uid];
+          _userName = game[Constants.name];
+          _userPhoto = game[Constants.photoUrl];
+
+          setPlayerColor(player: 0);
+          notifyListeners();
+
+          onSuccess();
+        }
+      }
+    });
+  }
+
   // set game data and settings
   Future<void> setGameDataAndSettings({
     required DocumentSnapshot<Object?> game,
@@ -586,5 +632,75 @@ class GameProvider extends ChangeNotifier {
 
     setPlayerColor(player: 1);
     notifyListeners();
+  }
+
+  bool _isWhitesTurn = true;
+  String blacksMove = '';
+  String whiteMove = '';
+
+  bool get isWhitesTurn => _isWhitesTurn;
+
+  StreamSubscription? gameStreamSubscription;
+
+  // listen for game changes in firestore
+  Future<void> listenGameChangesFirestore({
+    required BuildContext context,
+    required UserModel userModel,
+  }) async {
+    CollectionReference gameCollectionReference = firebaseFirestore
+        .collection(Constants.runningGames)
+        .doc(gameId)
+        .collection(Constants.game);
+
+    gameStreamSubscription =
+        gameCollectionReference.snapshots().listen((event) {
+      if (event.docs.isNotEmpty) {
+        // get the game
+        final DocumentSnapshot game = event.docs.first;
+
+        // check if we are white ( we are the game creator )
+        if (game[Constants.gameCreatorUid] == userModel.uid) {
+          // check if is white's turn
+          if (game[Constants.isWhitesTurn]) {
+            _isWhitesTurn = true;
+
+            // check if blacksCurrentMove iis not empty or equal the old move (black has played his move)
+            // this means its our turn to play
+            if (game[Constants.blacksCurrentMove] != blacksMove) {
+              // update the whites UI
+
+              bool result = makeStringMove(game[Constants.blacksCurrentMove]);
+              if (result) {
+                setSquaresState().whenComplete(() {
+                  pauseBlackTimer();
+                  startWhiteTime(context: context, newGame: () {});
+
+                  gameOverListerner(context: context, newGame: () {});
+                });
+              }
+            }
+            notifyListeners();
+          }
+        } else {
+          // not the game creator
+          _isWhitesTurn = false;
+
+          // check is white played his move
+          if (game[Constants.whitesCurrentMove] != whiteMove) {
+            bool result = makeStringMove(game[Constants.whitesCurrentMove]);
+
+            if (result) {
+              setSquaresState().whenComplete(() {
+                pauseWhiteTimer();
+                startBlackTime(context: context, newGame: () {});
+
+                gameOverListerner(context: context, newGame: () {});
+              });
+            }
+          }
+          notifyListeners();
+        }
+      }
+    });
   }
 }

@@ -291,10 +291,16 @@ class _GameStartScreenState extends State<GameStartScreen> {
 
               if (gameProvider.waitingText == Constants.searchingPlayerText) {
                 // stay on this screen and wait
-                debugPrint('Wait on this screen');
+                gameProvider.checkIfOpponentJoined(
+                    userModel: userModel,
+                    onSuccess: () {
+                      gameProvider.setIsLoading(value: false);
+                      Navigator.pushNamed(context, Constants.gameScreen);
+                    });
               } else {
                 // navigate to gameScreen
-                debugPrint('Going to gameScreen');
+                gameProvider.setIsLoading(value: false);
+                Navigator.pushNamed(context, Constants.gameScreen);
               }
             },
             onFail: (error) {

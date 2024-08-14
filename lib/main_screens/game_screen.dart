@@ -1,16 +1,16 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 import 'package:chesshub/constants.dart';
 import 'package:chesshub/helper/helper_methods.dart';
 import 'package:chesshub/helper/uci_commands.dart';
+import 'package:chesshub/providers/authentication_provider.dart';
 import 'package:chesshub/providers/game_provider.dart';
 import 'package:chesshub/service/assetsManager.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:square_bishop/square_bishop.dart';
 import 'package:squares/squares.dart';
+import 'package:stockfish/stockfish.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -20,103 +20,84 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  late Process stockfish;
-  late StreamSubscription<String> _stdoutSubscription;
-  late StreamSubscription<String> _stderrSubscription;
-  final List<String> _outputLines = [];
-  Completer<void>? _readyCompleter;
-  Completer<String>? _bestMoveCompleter;
+  late Stockfish stockfish;
 
   @override
   void initState() {
-    super.initState();
-    _startStockfish();
+    stockfish = Stockfish();
     final gameProvider = context.read<GameProvider>();
     gameProvider.resetGame(newGame: false);
 
     if (mounted) {
       letOtherPlayerPlayFirst();
     }
-  }
-
-  Future<void> _startStockfish() async {
-    stockfish = await Process.start('/usr/local/bin/stockfish', []);
-    _stdoutSubscription = stockfish.stdout
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())
-        .listen((data) {
-      _handleOutput(data);
-    });
-
-    _stderrSubscription = stockfish.stderr
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())
-        .listen((data) {
-      print('Error: $data');
-    });
-
-    // Send UCI command to initialize Stockfish
-    _sendCommand('uci');
-  }
-
-  void _sendCommand(String command) {
-    print('Sending command: $command');
-    stockfish.stdin.writeln(command);
+    super.initState();
   }
 
   @override
   void dispose() {
-    stockfish.kill();
-    _stdoutSubscription.cancel();
-    _stderrSubscription.cancel();
+    stockfish.dispose();
     super.dispose();
-  }
-
-  void _handleOutput(String data) {
-    print('Stockfish output: $data');
-    _outputLines.add(data);
-
-    if (_readyCompleter != null && data.contains('uciok')) {
-      _readyCompleter!.complete();
-      _readyCompleter = null;
-    }
-
-    if (_bestMoveCompleter != null && data.contains(UCICommands.bestMove)) {
-      final bestMove = data.split(' ')[1];
-      print('Best move received: $bestMove');
-      _bestMoveCompleter!.complete(bestMove);
-      _bestMoveCompleter = null;
-    }
-  }
-
-  Future<void> _waitForReady() {
-    _readyCompleter = Completer<void>();
-    return _readyCompleter!.future;
-  }
-
-  Future<String> _waitForBestMove() {
-    _bestMoveCompleter = Completer<String>();
-    return _bestMoveCompleter!.future;
   }
 
   void letOtherPlayerPlayFirst() async {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final gameProvider = context.read<GameProvider>();
-      if (gameProvider.state.state == PlayState.theirTurn &&
-          !gameProvider.aiThinking) {
-        gameProvider.setAiThinking(true);
-        await Future.delayed(
-            Duration(milliseconds: Random().nextInt(4750) + 250));
-        gameProvider.game.makeRandomMove();
-        gameProvider.setAiThinking(false);
-        gameProvider.setSquaresState().whenComplete(() {
-          gameProvider.pauseWhiteTimer();
 
-          startTimer(
-            isWhiteTimer: false,
-            newGame: () {},
-          );
-        });
+      if (gameProvider.vsComputer) {
+        if (gameProvider.state.state == PlayState.theirTurn &&
+            !gameProvider.aiThinking) {
+          gameProvider.setAiThinking(true);
+
+          // wait until stockfish is ready
+          await waitUntilReady();
+
+          // get the current position of the board and sent to stockfish
+          stockfish.stdin =
+              '${UCICommands.position} ${gameProvider.getPositionFen()}';
+
+          // set stockfish difficulty level
+          stockfish.stdin =
+              '${UCICommands.goMoveTime} ${gameProvider.gameLevel * 1000}';
+
+          stockfish.stdout.listen((event) {
+            if (event.contains(UCICommands.bestMove)) {
+              final bestMove = event.split(' ')[1];
+              gameProvider.makeStringMove(bestMove);
+              gameProvider.setAiThinking(false);
+              gameProvider.setSquaresState().whenComplete(() {
+                if (gameProvider.player == Squares.white) {
+                  if (gameProvider.playWhitesTimer) {
+                    gameProvider.pauseBlackTimer();
+
+                    startTimer(
+                      isWhiteTimer: true,
+                      newGame: () {},
+                    );
+
+                    gameProvider.setPlayWhitesTimer(value: false);
+                  }
+                } else {
+                  if (gameProvider.playBlacksTimer) {
+                    gameProvider.pauseWhiteTimer();
+
+                    startTimer(
+                      isWhiteTimer: false,
+                      newGame: () {},
+                    );
+
+                    gameProvider.setPlayBlacksTimer(value: true);
+                  }
+                }
+              });
+            }
+          });
+        }
+      } else {
+        final userModel = context.read<AuthenticationProvider>().userModel;
+        //listen for game changes in firestore
+        gameProvider.listenGameChangesFirestore(
+            context: context, userModel: userModel!);
       }
     });
   }
@@ -161,45 +142,55 @@ class _GameScreenState extends State<GameScreen> {
         !gameProvider.aiThinking) {
       gameProvider.setAiThinking(true);
 
-      // get the current position of the board and send to stockfish
-      _sendCommand('${UCICommands.position} ${gameProvider.getPositionFen()}');
+      await waitUntilReady();
 
-      // set stockfish difficulty level
-      _sendCommand(
-          '${UCICommands.goMoveTime} ${gameProvider.gameLevel * 1000}');
+      stockfish.stdin =
+          '${UCICommands.position} ${gameProvider.getPositionFen()}';
 
-      String bestMove = await _waitForBestMove();
-      print('Best move from Stockfish: $bestMove');
-      gameProvider.game.makeMoveString(bestMove);
-      gameProvider.setAiThinking(false);
-      gameProvider.setSquaresState().whenComplete(() {
-        if (gameProvider.player == Squares.white) {
-          if (gameProvider.playWhitesTimer) {
-            gameProvider.pauseBlackTimer();
+      stockfish.stdin =
+          '${UCICommands.goMoveTime} ${gameProvider.gameLevel * 1000}';
 
-            startTimer(
-              isWhiteTimer: true,
-              newGame: () {},
-            );
+      stockfish.stdout.listen((event) {
+        if (event.contains(UCICommands.bestMove)) {
+          final bestMove = event.split(' ')[1];
+          gameProvider.makeStringMove(bestMove);
+          gameProvider.setAiThinking(false);
+          gameProvider.setSquaresState().whenComplete(() {
+            if (gameProvider.player == Squares.white) {
+              if (gameProvider.playWhitesTimer) {
+                gameProvider.pauseBlackTimer();
 
-            gameProvider.setPlayWhitesTimer(value: false);
-          }
-        } else {
-          if (gameProvider.playBlacksTimer) {
-            gameProvider.pauseWhiteTimer();
+                startTimer(
+                  isWhiteTimer: true,
+                  newGame: () {},
+                );
 
-            startTimer(
-              isWhiteTimer: false,
-              newGame: () {},
-            );
+                gameProvider.setPlayWhitesTimer(value: false);
+              }
+            } else {
+              if (gameProvider.playBlacksTimer) {
+                gameProvider.pauseWhiteTimer();
 
-            gameProvider.setPlayBlacksTimer(value: true);
-          }
+                startTimer(
+                  isWhiteTimer: false,
+                  newGame: () {},
+                );
+
+                gameProvider.setPlayBlacksTimer(value: false);
+              }
+            }
+          });
         }
       });
     }
     await Future.delayed(const Duration(seconds: 1));
     checkGameOverListener();
+  }
+
+  Future<void> waitUntilReady() async {
+    while (stockfish.state.value != StockfishState.ready) {
+      await Future.delayed(const Duration(seconds: 1));
+    }
   }
 
   void startTimer({
@@ -230,7 +221,7 @@ class _GameScreenState extends State<GameScreen> {
       onWillPop: () async {
         bool? leave = await _showExitConfirmDialog(context);
         if (leave != null && leave) {
-          _sendCommand(UCICommands.stop);
+          stockfish.stdin = UCICommands.stop;
           await Future.delayed(const Duration(milliseconds: 200))
               .whenComplete(() {
             Navigator.pushNamedAndRemoveUntil(
