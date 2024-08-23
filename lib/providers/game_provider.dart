@@ -715,4 +715,58 @@ class GameProvider extends ChangeNotifier {
       }
     });
   }
+
+  Future<void> playMoveAndSaveToFirestore({
+    required BuildContext context,
+    required Move move,
+    required bool isWhitesMove,
+  }) async {
+    if (isWhitesMove) {
+      await firebaseFirestore
+          .collection(Constants.runningGames)
+          .doc(gameId)
+          .collection(Constants.game)
+          .doc(gameId)
+          .update({
+        Constants.positionFen: getPositionFen(),
+        Constants.whitesCurrentMove: move.algebraic(),
+        Constants.moves: FieldValue.arrayUnion([move.toString()]),
+        Constants.isWhitesTurn: false,
+        Constants.playState: PlayState.theirTurn.name.toString(),
+      });
+
+      // pause whites time and start blacks timer
+      pauseWhiteTimer();
+
+      Future.delayed(const Duration(microseconds: 100)).whenComplete(() {
+        startBlackTime(
+          context: context,
+          newGame: () {},
+        );
+      });
+    } else {
+      await firebaseFirestore
+          .collection(Constants.runningGames)
+          .doc(gameId)
+          .collection(Constants.game)
+          .doc(gameId)
+          .update({
+        Constants.positionFen: getPositionFen(),
+        Constants.blacksCurrentMove: move.algebraic(),
+        Constants.moves: FieldValue.arrayUnion([move.toString()]),
+        Constants.isWhitesTurn: true,
+        Constants.playState: PlayState.ourTurn.name.toString(),
+      });
+
+      // pause whites time and start blacks timer
+      pauseBlackTimer();
+
+      Future.delayed(const Duration(microseconds: 100)).whenComplete(() {
+        startWhiteTime(
+          context: context,
+          newGame: () {},
+        );
+      });
+    }
+  }
 }

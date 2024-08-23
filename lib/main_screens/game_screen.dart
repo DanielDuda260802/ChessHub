@@ -118,74 +118,96 @@ class _GameScreenState extends State<GameScreen> {
     final gameProvider = context.read<GameProvider>();
     bool result = gameProvider.game.makeSquaresMove(move);
     if (result) {
-      gameProvider.setSquaresState().whenComplete(() {
+      gameProvider.setSquaresState().whenComplete(() async {
         if (gameProvider.player == Squares.white) {
-          gameProvider.pauseWhiteTimer();
+          if (gameProvider.vsComputer) {
+            gameProvider.pauseWhiteTimer();
 
-          startTimer(
-            isWhiteTimer: false,
-            newGame: () {},
-          );
+            startTimer(
+              isWhiteTimer: false,
+              newGame: () {},
+            );
 
-          gameProvider.setPlayWhitesTimer(value: true);
+            gameProvider.setPlayWhitesTimer(value: true);
+          } else {
+            // play online
+            // play and save whites move to firestore
+            await gameProvider.playMoveAndSaveToFirestore(
+              context: context,
+              move: move,
+              isWhitesMove: true,
+            );
+          }
         } else {
-          gameProvider.pauseBlackTimer();
+          if (gameProvider.vsComputer) {
+            gameProvider.pauseBlackTimer();
 
-          startTimer(
-            isWhiteTimer: true,
-            newGame: () {},
-          );
-          gameProvider.setPlayBlacksTimer(value: true);
+            startTimer(
+              isWhiteTimer: true,
+              newGame: () {},
+            );
+            gameProvider.setPlayBlacksTimer(value: true);
+          } else {
+            // play online
+            // play and save blacks move to firestore
+            await gameProvider.playMoveAndSaveToFirestore(
+              context: context,
+              move: move,
+              isWhitesMove: false,
+            );
+          }
         }
       });
     }
-    if (gameProvider.state.state == PlayState.theirTurn &&
-        !gameProvider.aiThinking) {
-      gameProvider.setAiThinking(true);
+    if (gameProvider.vsComputer) {
+      if (gameProvider.state.state == PlayState.theirTurn &&
+          !gameProvider.aiThinking) {
+        gameProvider.setAiThinking(true);
 
-      await waitUntilReady();
+        await waitUntilReady();
 
-      stockfish.stdin =
-          '${UCICommands.position} ${gameProvider.getPositionFen()}';
+        stockfish.stdin =
+            '${UCICommands.position} ${gameProvider.getPositionFen()}';
 
-      stockfish.stdin =
-          '${UCICommands.goMoveTime} ${gameProvider.gameLevel * 1000}';
+        stockfish.stdin =
+            '${UCICommands.goMoveTime} ${gameProvider.gameLevel * 1000}';
 
-      stockfish.stdout.listen((event) {
-        if (event.contains(UCICommands.bestMove)) {
-          final bestMove = event.split(' ')[1];
-          gameProvider.makeStringMove(bestMove);
-          gameProvider.setAiThinking(false);
-          gameProvider.setSquaresState().whenComplete(() {
-            if (gameProvider.player == Squares.white) {
-              if (gameProvider.playWhitesTimer) {
-                gameProvider.pauseBlackTimer();
+        stockfish.stdout.listen((event) {
+          if (event.contains(UCICommands.bestMove)) {
+            final bestMove = event.split(' ')[1];
+            gameProvider.makeStringMove(bestMove);
+            gameProvider.setAiThinking(false);
+            gameProvider.setSquaresState().whenComplete(() {
+              if (gameProvider.player == Squares.white) {
+                if (gameProvider.playWhitesTimer) {
+                  gameProvider.pauseBlackTimer();
 
-                startTimer(
-                  isWhiteTimer: true,
-                  newGame: () {},
-                );
+                  startTimer(
+                    isWhiteTimer: true,
+                    newGame: () {},
+                  );
 
-                gameProvider.setPlayWhitesTimer(value: false);
+                  gameProvider.setPlayWhitesTimer(value: false);
+                }
+              } else {
+                if (gameProvider.playBlacksTimer) {
+                  gameProvider.pauseWhiteTimer();
+
+                  startTimer(
+                    isWhiteTimer: false,
+                    newGame: () {},
+                  );
+
+                  gameProvider.setPlayBlacksTimer(value: false);
+                }
               }
-            } else {
-              if (gameProvider.playBlacksTimer) {
-                gameProvider.pauseWhiteTimer();
-
-                startTimer(
-                  isWhiteTimer: false,
-                  newGame: () {},
-                );
-
-                gameProvider.setPlayBlacksTimer(value: false);
-              }
-            }
-          });
-        }
-      });
+            });
+          }
+        });
+      }
+      await Future.delayed(const Duration(seconds: 1));
+      checkGameOverListener();
     }
-    await Future.delayed(const Duration(seconds: 1));
-    checkGameOverListener();
   }
 
   Future<void> waitUntilReady() async {
