@@ -17,6 +17,9 @@ class Constants {
   static const String email = 'email';
   static const String image = 'image';
   static const String createdAt = 'createdAt';
+  static const String playerRating = 'playerRating';
+  static const String gameCreatorRating = 'gameCreatorRating';
+  static const String userRating = 'userRating';
 
   static const String userImage = 'userImage';
   static const String users = 'users';
@@ -35,7 +38,6 @@ class Constants {
   static const String whitesTime = 'whitesTime';
   static const String blacksTime = 'blacksTime';
 
-  static const String creatorUid = 'creatorUid';
   static const String userId = 'userId';
   static const String positionFen = 'positionFen';
   static const String winnerId = 'winnerId';

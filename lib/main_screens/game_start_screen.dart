@@ -287,16 +287,16 @@ class _GameStartScreenState extends State<GameStartScreen> {
           gameProvider.searchPlayer(
             userModel: userModel!,
             onSuccess: () {
-              gameProvider.setIsLoading(value: false);
-
               if (gameProvider.waitingText == Constants.searchingPlayerText) {
                 // stay on this screen and wait
                 gameProvider.checkIfOpponentJoined(
-                    userModel: userModel,
-                    onSuccess: () {
-                      gameProvider.setIsLoading(value: false);
-                      Navigator.pushNamed(context, Constants.gameScreen);
-                    });
+                  userModel: userModel,
+                  onSuccess: () {
+                    debugPrint("Opponent joined, navigating to game screen");
+                    gameProvider.setIsLoading(value: false);
+                    Navigator.pushNamed(context, Constants.gameScreen);
+                  },
+                );
               } else {
                 // navigate to gameScreen
                 gameProvider.setIsLoading(value: false);

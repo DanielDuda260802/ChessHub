@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:chesshub/constants.dart';
 import 'package:chesshub/helper/helper_methods.dart';
 import 'package:chesshub/helper/uci_commands.dart';
+import 'package:chesshub/models/user.dart';
 import 'package:chesshub/providers/authentication_provider.dart';
 import 'package:chesshub/providers/game_provider.dart';
 import 'package:chesshub/service/assetsManager.dart';
@@ -86,7 +87,7 @@ class _GameScreenState extends State<GameScreen> {
                       newGame: () {},
                     );
 
-                    gameProvider.setPlayBlacksTimer(value: true);
+                    gameProvider.setPlayBlacksTimer(value: false);
                   }
                 }
               });
@@ -216,6 +217,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     final gameProvider = context.read<GameProvider>();
+    final userModel = context.read<AuthenticationProvider>().userModel;
 
     return WillPopScope(
       onWillPop: () async {
@@ -267,58 +269,54 @@ class _GameScreenState extends State<GameScreen> {
                   isUser: false,
                 );
                 return Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  //mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    ListTile(
-                      leading: CircleAvatar(
-                        radius: 25,
-                        backgroundImage:
-                            AssetImage(AssetsManager.chessEngine_image),
-                      ),
-                      title: const Text('Stockfish'),
-                      subtitle: const Text('Rating: 3000'),
-                      trailing: Text(
-                        blackTimer,
-                        style: const TextStyle(fontSize: 18),
-                      ),
+                    showOppenentsData(
+                      gameProvider: gameProvider,
+                      userModel: userModel!,
+                      timeToShow: blackTimer,
                     ),
-                    Expanded(
-                      child: Container(
-                        width: boardSize,
-                        padding: const EdgeInsets.all(4.0),
-                        child: AspectRatio(
-                          aspectRatio: 1,
-                          child: BoardController(
-                            state: gameProvider.flipBoard
-                                ? gameProvider.state.board.flipped()
-                                : gameProvider.state.board,
-                            playState: gameProvider.state.state,
-                            pieceSet: PieceSet.merida(),
-                            theme: BoardTheme.brown,
-                            moves: gameProvider.state.moves,
-                            onMove: _onMove,
-                            onPremove: _onMove,
-                            markerTheme: MarkerTheme(
-                              empty: MarkerTheme.dot,
-                              piece: MarkerTheme.corners(),
+                    gameProvider.vsComputer
+                        ? Padding(
+                            padding: const EdgeInsets.all(4.0),
+                            child: BoardController(
+                              state: gameProvider.flipBoard
+                                  ? gameProvider.state.board.flipped()
+                                  : gameProvider.state.board,
+                              playState: gameProvider.state.state,
+                              pieceSet: PieceSet.merida(),
+                              theme: BoardTheme.brown,
+                              moves: gameProvider.state.moves,
+                              onMove: _onMove,
+                              onPremove: _onMove,
+                              markerTheme: MarkerTheme(
+                                empty: MarkerTheme.dot,
+                                piece: MarkerTheme.corners(),
+                              ),
+                              promotionBehaviour:
+                                  PromotionBehaviour.autoPremove,
                             ),
-                            promotionBehaviour: PromotionBehaviour.autoPremove,
-                          ),
-                        ),
-                      ),
-                    ),
+                          )
+                        : buildChessBoard(
+                            gameProvider: gameProvider, userModel: userModel),
                     ListTile(
-                      leading: CircleAvatar(
-                        radius: 25,
-                        backgroundImage: AssetImage(AssetsManager.user_image),
-                      ),
-                      title: const Text('User_01'),
-                      subtitle: const Text('Rating: 1200'),
+                      leading: userModel.image == ''
+                          ? CircleAvatar(
+                              radius: 25,
+                              backgroundImage:
+                                  AssetImage(AssetsManager.user_image),
+                            )
+                          : CircleAvatar(
+                              radius: 25,
+                              backgroundImage: NetworkImage(userModel.image),
+                            ),
+                      title: Text(userModel.name),
+                      subtitle: Text('Rating: ${userModel.playerRating}'),
                       trailing: Text(
                         whiteTimer,
                         style: const TextStyle(fontSize: 18),
                       ),
-                    ),
+                    )
                   ],
                 );
               }),
@@ -327,6 +325,94 @@ class _GameScreenState extends State<GameScreen> {
         ),
       ),
     );
+  }
+
+  Widget buildChessBoard({
+    required GameProvider gameProvider,
+    required UserModel userModel,
+  }) {
+    bool isOurTurn = gameProvider.isWhitesTurn ==
+        (gameProvider.gameCreatorUid == userModel.uid);
+
+    return Padding(
+      padding: const EdgeInsets.all(4.0),
+      child: BoardController(
+        state: gameProvider.flipBoard
+            ? gameProvider.state.board.flipped()
+            : gameProvider.state.board,
+        playState: isOurTurn ? PlayState.ourTurn : PlayState.theirTurn,
+        pieceSet: PieceSet.merida(),
+        theme: BoardTheme.brown,
+        moves: gameProvider.state.moves,
+        onMove: _onMove,
+        onPremove: _onMove,
+        markerTheme: MarkerTheme(
+          empty: MarkerTheme.dot,
+          piece: MarkerTheme.corners(),
+        ),
+        promotionBehaviour: PromotionBehaviour.autoPremove,
+      ),
+    );
+  }
+
+  Widget showOppenentsData({
+    required GameProvider gameProvider,
+    required UserModel userModel,
+    required String timeToShow,
+  }) {
+    if (gameProvider.vsComputer) {
+      return ListTile(
+        leading: CircleAvatar(
+          radius: 25,
+          backgroundImage: AssetImage(AssetsManager.chessEngine_image),
+        ),
+        title: const Text('Stockfish'),
+        subtitle: Text('Rating: ${gameProvider.gameLevel * 1000}'),
+        trailing: Text(
+          timeToShow,
+          style: const TextStyle(fontSize: 18),
+        ),
+      );
+    } else {
+      // check is we are the creator of this game
+      if (gameProvider.gameCreatorUid == userModel.uid) {
+        return ListTile(
+          leading: gameProvider.userPhoto == ''
+              ? CircleAvatar(
+                  radius: 25,
+                  backgroundImage: AssetImage(AssetsManager.user_image),
+                )
+              : CircleAvatar(
+                  radius: 25,
+                  backgroundImage: NetworkImage(gameProvider.userPhoto),
+                ),
+          title: Text(gameProvider.userName),
+          subtitle: Text('Rating: ${gameProvider.userRating}'),
+          trailing: Text(
+            timeToShow,
+            style: const TextStyle(fontSize: 18),
+          ),
+        );
+      } else {
+        return ListTile(
+          leading: gameProvider.gameCreatorPhoto == ''
+              ? CircleAvatar(
+                  radius: 25,
+                  backgroundImage: AssetImage(AssetsManager.user_image),
+                )
+              : CircleAvatar(
+                  radius: 25,
+                  backgroundImage: NetworkImage(gameProvider.gameCreatorPhoto),
+                ),
+          title: Text(gameProvider.gameCreatorName),
+          subtitle: Text('Rating: ${gameProvider.gameCreatorRating}'),
+          trailing: Text(
+            timeToShow,
+            style: const TextStyle(fontSize: 18),
+          ),
+        );
+      }
+    }
   }
 
   Future<bool?> _showExitConfirmDialog(BuildContext context) async {

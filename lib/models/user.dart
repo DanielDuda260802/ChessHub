@@ -6,6 +6,7 @@ class UserModel {
   String email;
   String image;
   String createdAt;
+  int playerRating;
 
   UserModel({
     required this.uid,
@@ -13,6 +14,7 @@ class UserModel {
     required this.email,
     required this.image,
     required this.createdAt,
+    required this.playerRating,
   });
 
   Map<String, dynamic> toMap() {
@@ -22,6 +24,7 @@ class UserModel {
       Constants.email: email,
       Constants.image: image,
       Constants.createdAt: createdAt,
+      Constants.playerRating: playerRating,
     };
   }
 
@@ -32,6 +35,7 @@ class UserModel {
       email: data[Constants.email] ?? '',
       image: data[Constants.image] ?? '',
       createdAt: data[Constants.createdAt] ?? '',
+      playerRating: data[Constants.playerRating] ?? 1200,
     );
   }
 }

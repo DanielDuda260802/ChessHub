@@ -135,7 +135,7 @@ class GameProvider extends ChangeNotifier {
   }
 
   void setGameDifficulty({required int level}) {
-    _gameLevel = gameLevel;
+    _gameLevel = level;
     _gameDifficulty = level == 1
         ? GameDifficulty.easy
         : level == 2
@@ -451,15 +451,19 @@ class GameProvider extends ChangeNotifier {
         Constants.uid: '',
         Constants.name: '',
         Constants.photoUrl: '',
+        Constants.userRating: 1200,
         Constants.gameCreatorUid: userModel.uid,
         Constants.gameCreatorName: userModel.name,
         Constants.gameCreatorImage: userModel.image,
+        Constants.gameCreatorRating: userModel.playerRating,
         Constants.isPlaying: false,
         Constants.gameId: gameId,
         Constants.dateCreated: DateTime.now().microsecondsSinceEpoch.toString(),
         Constants.whitesTime: _whiteSavedTime.toString(),
         Constants.blacksTime: _blackSavedTime.toString(),
       });
+      debugPrint("Game created with ID: $_gameId");
+      onSuccess();
     } on FirebaseException catch (e) {
       onFail(e.toString());
     }
@@ -468,16 +472,20 @@ class GameProvider extends ChangeNotifier {
   String _gameCreatorUid = '';
   String _gameCreatorName = '';
   String _gameCreatorPhoto = '';
+  int _gameCreatorRating = 1200;
   String _userId = '';
   String _userName = '';
   String _userPhoto = '';
+  int _userRating = 1200;
 
   String get gameCreatorUid => _gameCreatorUid;
   String get gameCreatorName => _gameCreatorName;
   String get gameCreatorPhoto => _gameCreatorPhoto;
+  int get gameCreatorRating => _gameCreatorRating;
   String get userId => _userId;
   String get userName => _userName;
   String get userPhoto => _userPhoto;
+  int get userRating => _userRating;
 
   void joinGame({
     required DocumentSnapshot<Object?> game,
@@ -496,10 +504,11 @@ class GameProvider extends ChangeNotifier {
       _gameCreatorUid = game[Constants.gameCreatorUid];
       _gameCreatorName = game[Constants.gameCreatorName];
       _gameCreatorPhoto = game[Constants.gameCreatorImage];
+      _gameCreatorRating = game[Constants.gameCreatorRating];
       _userId = userModel.uid;
       _userName = userModel.name;
       _userPhoto = userModel.image;
-
+      _userRating = userModel.playerRating;
       _gameId = game[Constants.gameId];
       notifyListeners();
 
@@ -511,7 +520,7 @@ class GameProvider extends ChangeNotifier {
       // initialize the gameModel
       final gameModel = GameModel(
         gameId: gameId,
-        creatorUid: _gameCreatorUid,
+        gameCreatorUid: _gameCreatorUid,
         userId: userId,
         positionFen: getPositionFen(),
         winnerId: '',
@@ -543,16 +552,18 @@ class GameProvider extends ChangeNotifier {
         Constants.gameCreatorUid: gameCreatorUid,
         Constants.gameCreatorName: gameCreatorName,
         Constants.gameCreatorImage: gameCreatorPhoto,
+        Constants.gameCreatorRating: gameCreatorRating,
         Constants.userId: userId,
         Constants.userName: userName,
         Constants.userImage: userPhoto,
+        Constants.userRating: userRating,
         Constants.isPlaying: true,
         Constants.dateCreated: DateTime.now().microsecondsSinceEpoch.toString(),
         Constants.gameScore: '0-0',
       });
 
       // update game settings depending on the data of the game we are joining
-      setGameDataAndSettings(game: game, userModel: userModel);
+      await setGameDataAndSettings(game: game, userModel: userModel);
 
       onSuccess();
     } on FirebaseException catch (e) {
@@ -580,7 +591,7 @@ class GameProvider extends ChangeNotifier {
         // check if isPlaying == true
         if (game[Constants.isPlaying]) {
           isPlayingStreamSubscription!.cancel();
-          await Future.delayed(const Duration(milliseconds: 100));
+          await Future.delayed(const Duration(milliseconds: 1000));
           // get data from the game we are joining
           _gameCreatorUid = game[Constants.gameCreatorUid];
           _gameCreatorName = game[Constants.gameCreatorName];
@@ -604,7 +615,7 @@ class GameProvider extends ChangeNotifier {
     required UserModel userModel,
   }) async {
     // get references to the game we are joining
-    final opponentsGame = await firebaseFirestore
+    final opponentsGame = firebaseFirestore
         .collection(Constants.availableGames)
         .doc(game[Constants.gameCreatorUid]);
 
@@ -628,6 +639,7 @@ class GameProvider extends ChangeNotifier {
       Constants.uid: userModel.uid,
       Constants.name: userModel.name,
       Constants.photoUrl: userModel.image,
+      Constants.userRating: userModel.playerRating,
     });
 
     setPlayerColor(player: 1);

@@ -3,7 +3,7 @@ import 'package:squares/squares.dart';
 
 class GameModel {
   String gameId;
-  String creatorUid;
+  String gameCreatorUid;
   String userId;
   String positionFen;
   String winnerId;
@@ -20,7 +20,7 @@ class GameModel {
 
   GameModel({
     required this.gameId,
-    required this.creatorUid,
+    required this.gameCreatorUid,
     required this.userId,
     required this.positionFen,
     required this.winnerId,
@@ -39,7 +39,7 @@ class GameModel {
   Map<String, dynamic> toMap() {
     return {
       Constants.gameId: gameId,
-      Constants.creatorUid: creatorUid,
+      Constants.gameCreatorUid: gameCreatorUid,
       Constants.userId: userId,
       Constants.positionFen: positionFen,
       Constants.winnerId: winnerId,
@@ -59,7 +59,7 @@ class GameModel {
   factory GameModel.fromMap(Map<String, dynamic> map) {
     return GameModel(
       gameId: map[Constants.gameId] ?? '',
-      creatorUid: map[Constants.creatorUid] ?? '',
+      gameCreatorUid: map[Constants.gameCreatorUid] ?? '',
       userId: map[Constants.userId] ?? '',
       positionFen: map[Constants.positionFen] ?? '',
       winnerId: map[Constants.winnerId] ?? '',
