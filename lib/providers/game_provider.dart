@@ -272,6 +272,8 @@ class GameProvider extends ChangeNotifier {
       pauseWhiteTimer();
       pauseBlackTimer();
 
+      gameStreamSubscription!.cancel();
+
       // GAME OVER
       if (context.mounted) {
         gameOverDialog(
@@ -681,7 +683,10 @@ class GameProvider extends ChangeNotifier {
             if (game[Constants.blacksCurrentMove] != blacksMove) {
               // update the whites UI
 
-              bool result = makeStringMove(game[Constants.blacksCurrentMove]);
+              Move convertedMove = convertMoveStringToMove(
+                  moveString: game[Constants.blacksCurrentMove]);
+
+              bool result = makeSquaresMove(convertedMove);
               if (result) {
                 setSquaresState().whenComplete(() {
                   pauseBlackTimer();
@@ -699,7 +704,10 @@ class GameProvider extends ChangeNotifier {
 
           // check is white played his move
           if (game[Constants.whitesCurrentMove] != whiteMove) {
-            bool result = makeStringMove(game[Constants.whitesCurrentMove]);
+            Move convertedMove = convertMoveStringToMove(
+                moveString: game[Constants.whitesCurrentMove]);
+
+            bool result = makeSquaresMove(convertedMove);
 
             if (result) {
               setSquaresState().whenComplete(() {
@@ -716,6 +724,48 @@ class GameProvider extends ChangeNotifier {
     });
   }
 
+  // convert string move to move format
+  Move convertMoveStringToMove({required String moveString}) {
+    // Split the move to string into its components (firestore: runningGames - game - moves: example: "51-35")
+    List<String> parts = moveString.split('-');
+
+    // Library: move.dart -->
+    //   Move({
+    //   required this.from,
+    //   required this.to,
+    //   this.promo,
+    //   this.piece,
+    //   this.gatingSquare,
+    // }) {
+    //   if (from == Squares.hand) {
+    //     assert(piece != null, 'Drop moves require a piece');
+    //   }
+    // }
+
+    // Extract 'from' and 'to'
+    int from = int.parse(parts[0]);
+    int to = int.parse(parts[1].split('[')[0]);
+
+    String? promo;
+    String? piece;
+    // Extract 'promo' and 'piece' if available
+    if (moveString.contains('[')) {
+      String extras = moveString.split('[')[1].split(']')[0];
+      List<String> extraList = extras.split(',');
+      promo = extraList[0];
+      if (extraList.length > 1) {
+        piece = extraList[1];
+      }
+    }
+
+    return Move(
+      from: from,
+      to: to,
+      promo: promo,
+      piece: piece,
+    );
+  }
+
   Future<void> playMoveAndSaveToFirestore({
     required BuildContext context,
     required Move move,
@@ -729,7 +779,7 @@ class GameProvider extends ChangeNotifier {
           .doc(gameId)
           .update({
         Constants.positionFen: getPositionFen(),
-        Constants.whitesCurrentMove: move.algebraic(),
+        Constants.whitesCurrentMove: move.toString(),
         Constants.moves: FieldValue.arrayUnion([move.toString()]),
         Constants.isWhitesTurn: false,
         Constants.playState: PlayState.theirTurn.name.toString(),
@@ -752,7 +802,7 @@ class GameProvider extends ChangeNotifier {
           .doc(gameId)
           .update({
         Constants.positionFen: getPositionFen(),
-        Constants.blacksCurrentMove: move.algebraic(),
+        Constants.blacksCurrentMove: move.toString(),
         Constants.moves: FieldValue.arrayUnion([move.toString()]),
         Constants.isWhitesTurn: true,
         Constants.playState: PlayState.ourTurn.name.toString(),

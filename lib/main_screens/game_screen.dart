@@ -206,8 +206,8 @@ class _GameScreenState extends State<GameScreen> {
         });
       }
       await Future.delayed(const Duration(seconds: 1));
-      checkGameOverListener();
     }
+    checkGameOverListener();
   }
 
   Future<void> waitUntilReady() async {
