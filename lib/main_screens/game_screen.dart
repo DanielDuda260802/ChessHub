@@ -259,14 +259,22 @@ class _GameScreenState extends State<GameScreen> {
             backgroundColor: Colors.black,
             title:
                 const Text('ChessHub', style: TextStyle(color: Colors.white)),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () async {
+                bool? leave = await _showExitConfirmDialog(context);
+                if (leave != null && leave) {
+                  stockfish.stdin = UCICommands.stop;
+                  await Future.delayed(const Duration(milliseconds: 200))
+                      .whenComplete(() {
+                    Navigator.pushNamedAndRemoveUntil(
+                        context, Constants.homeScreen, (route) => false);
+                  });
+                }
+              },
+            ),
             actions: [
               const SizedBox(height: 16),
-              IconButton(
-                onPressed: () {
-                  gameProvider.resetGame(newGame: false);
-                },
-                icon: const Icon(Icons.start, color: Colors.white),
-              ),
               IconButton(
                 onPressed: () {
                   gameProvider.flipChessBoard();

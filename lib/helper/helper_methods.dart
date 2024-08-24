@@ -5,29 +5,49 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:squares/squares.dart';
 
-Widget buildGameType(
-    {required String label,
-    String? gameTime,
-    IconData? icon,
-    required Function() onTap}) {
-  return InkWell(
-    onTap: onTap,
-    child: Card(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          icon != null
-              ? Icon(icon)
-              : gameTime! == '60+0'
-                  ? const SizedBox.shrink()
-                  : Text(gameTime),
-          const SizedBox(
-            height: 15,
+Widget buildGameType({
+  required String label,
+  String? gameTime,
+  IconData? icon,
+  required Function() onTap,
+}) {
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(
+            vertical: 20,
+            horizontal: 30,
           ),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold))
-        ],
-      ),
-    ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          backgroundColor: Colors.black,
+          minimumSize: Size(constraints.maxWidth, 50),
+        ),
+        onPressed: onTap,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null)
+              Icon(
+                icon,
+                size: 30,
+                color: Colors.white,
+              ),
+            if (icon != null) const SizedBox(width: 10),
+            Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      );
+    },
   );
 }
 
